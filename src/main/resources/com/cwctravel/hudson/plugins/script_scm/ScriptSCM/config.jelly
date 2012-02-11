@@ -1,0 +1,28 @@
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+  <!--
+    This jelly script is used for per-project configuration.
+
+    See global.jelly for a general discussion about jelly script.
+  -->
+
+  <!--
+    Creates a text field that shows the value of the "name" property.
+    When submitted, it will be passed to the corresponding constructor parameter.
+  -->
+  <f:radioBlock name="scriptSource" title="Groovy Script" value="0" checked="${not empty instance.groovyScript}">
+	  <f:entry field="groovyScript">
+	    <f:textarea name="groovyScript" value="${instance.groovyScript}"/>
+	  </f:entry>  
+  </f:radioBlock>
+  <f:radioBlock name="scriptSource" title="Groovy Script File" value="1" checked="${not empty instance.groovyScriptFile}">  	  
+	  <f:entry field="groovyScriptFile">
+	    <f:textbox name="groovyScriptFile" value="${instance.groovyScriptFile}"/>
+	  </f:entry>    
+  </f:radioBlock>
+  
+  <f:advanced>
+      <f:entry field="bindings" title="${%Variable bindings}">
+          <f:textarea name="bindings" value="${instance.bindings}" />
+      </f:entry>
+  </f:advanced>
+</j:jelly>
