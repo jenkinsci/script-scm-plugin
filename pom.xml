@@ -154,7 +154,7 @@
 	</repository>
 </distributionManagement>
   <scm>
-    <connection>scm:git:ssh://github.com/jenkinsci/script-scm-plugin.git</connection>
+    <connection>scm:git:ssh://git@github.com/jenkinsci/script-scm-plugin.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/script-scm-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/script-scm-plugin</url>
   </scm>
