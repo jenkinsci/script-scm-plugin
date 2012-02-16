@@ -28,7 +28,6 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.net.URL;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
@@ -48,16 +47,6 @@ public class ScriptSCM extends SCM {
 
 		@Override
 		public void run() {}
-	}
-
-	private static class ScriptSCMBrowser extends RepositoryBrowser<ScriptSCMChangeLogEntry> {
-		private static final long serialVersionUID = 3690443721906714778L;
-
-		@Override
-		public URL getChangeSetLink(ScriptSCMChangeLogEntry changeSet) throws IOException {
-			return new URL(changeSet.getChangesetUrl());
-		}
-
 	}
 
 	private static class TempBuildListener implements BuildListener {
