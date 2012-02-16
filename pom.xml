@@ -6,7 +6,7 @@
     <version>1.399</version><!-- which version of Jenkins is this plugin built against? -->
   </parent>
 
-  <groupId>com.cwctravel</groupId>
+ 
   <artifactId>script-scm</artifactId>
   <version>1.4-SNAPSHOT</version>
   <packaging>hpi</packaging>
