@@ -41,6 +41,7 @@ public class ScriptSCMChangeLogSet extends ChangeLogSet<ScriptSCMChangeLogEntry>
 		digester.addBeanPropertySetter("*/entry/date");
 		digester.addBeanPropertySetter("*/entry/user-id", "userId");
 		digester.addBeanPropertySetter("*/entry/changeset-number", "changesetNumber");
+		digester.addBeanPropertySetter("*/entry/changeset-url", "changesetUrl");
 		digester.addBeanPropertySetter("*/entry/comment", "comment");
 		digester.addSetNext("*/entry", "add");
 

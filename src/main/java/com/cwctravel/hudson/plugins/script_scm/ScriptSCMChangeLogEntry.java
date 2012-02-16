@@ -49,6 +49,7 @@ public class ScriptSCMChangeLogEntry extends Entry {
 	}
 
 	private String changesetNumber;
+	private String changesetUrl;
 	private String date;
 	private String userId;
 	private String comment;
@@ -60,6 +61,14 @@ public class ScriptSCMChangeLogEntry extends Entry {
 
 	public void setChangesetNumber(String changesetNumber) {
 		this.changesetNumber = changesetNumber;
+	}
+
+	public String getChangesetUrl() {
+		return changesetUrl;
+	}
+
+	public void setChangesetUrl(String changesetUrl) {
+		this.changesetUrl = changesetUrl;
 	}
 
 	public String getDate() {
