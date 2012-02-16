@@ -15,7 +15,7 @@ public class ScriptSCMBrowser extends RepositoryBrowser<ScriptSCMChangeLogEntry>
 
 		@Override
 		public String getDisplayName() {
-			return "Detail";
+			return "detail";
 		}
 
 	}
