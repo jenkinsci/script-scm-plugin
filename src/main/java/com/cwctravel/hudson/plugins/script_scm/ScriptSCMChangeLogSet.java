@@ -20,6 +20,11 @@ public class ScriptSCMChangeLogSet extends ChangeLogSet<ScriptSCMChangeLogEntry>
 	protected ScriptSCMChangeLogSet(AbstractBuild<?, ?> build, List<ScriptSCMChangeLogEntry> changeLogEntries) {
 		super(build);
 		this.changeLogEntries = changeLogEntries;
+		if(changeLogEntries != null) {
+			for(ScriptSCMChangeLogEntry changeLogEntry: changeLogEntries) {
+				changeLogEntry.setParent(this);
+			}
+		}
 	}
 
 	public Iterator<ScriptSCMChangeLogEntry> iterator() {
@@ -52,6 +57,7 @@ public class ScriptSCMChangeLogSet extends ChangeLogSet<ScriptSCMChangeLogEntry>
 
 		try {
 			digester.parse(changelogFile);
+
 		}
 		catch(IOException e) {
 			throw new IOException2("Failed to parse " + changelogFile, e);

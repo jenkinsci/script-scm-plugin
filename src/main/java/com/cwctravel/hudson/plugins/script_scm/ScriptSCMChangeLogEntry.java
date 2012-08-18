@@ -1,6 +1,7 @@
 package com.cwctravel.hudson.plugins.script_scm;
 
 import hudson.model.User;
+import hudson.scm.ChangeLogSet;
 import hudson.scm.ChangeLogSet.AffectedFile;
 import hudson.scm.ChangeLogSet.Entry;
 import hudson.scm.EditType;
@@ -137,4 +138,8 @@ public class ScriptSCMChangeLogEntry extends Entry {
 		return getFiles();
 	}
 
+	@Override
+	public void setParent(ChangeLogSet parent) {
+		super.setParent(parent);
+	}
 }
