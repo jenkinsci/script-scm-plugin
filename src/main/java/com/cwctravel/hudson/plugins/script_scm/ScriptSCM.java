@@ -206,7 +206,7 @@ public class ScriptSCM extends SCM {
 		}
 	}
 
-	private void evaluateGroovyScript(Map<String, Object> input) throws IOException {
+	private void evaluateGroovyScript(File workspace, Map<String, Object> input) throws IOException {
 		GroovyShell groovyShell = new GroovyShell();
 		if(input != null) {
 			setGroovySystemObjects(input);
@@ -214,7 +214,11 @@ public class ScriptSCM extends SCM {
 				groovyShell.setVariable(entry.getKey(), entry.getValue());
 			}
 			if(groovyScriptFile != null) {
-				String groovyScript = Util.loadFile(new File(groovyScriptFile));
+				File scriptFile = new File(groovyScriptFile);
+				if(!scriptFile.exists()) {
+					scriptFile = new File(workspace, groovyScriptFile);
+				}
+				String groovyScript = Util.loadFile(scriptFile);
 				groovyShell.evaluate(groovyScript);
 			}
 			else {
@@ -253,7 +257,7 @@ public class ScriptSCM extends SCM {
 
 		ScriptSCMRevisionState result = null;
 		try {
-			evaluateGroovyScript(input);
+			evaluateGroovyScript(new File(build.getWorkspace().getRemote()), input);
 			result = new ScriptSCMRevisionState();
 			result.setRevisionState(Util.loadFile(new File(filePath.getRemote())));
 		}
@@ -275,7 +279,7 @@ public class ScriptSCM extends SCM {
 		input.put("workspacePath", build.getWorkspace().getRemote());
 		input.put("changeLogPath", changelogFile.getParentFile().getAbsolutePath());
 		input.put("changeLogFile", changelogFile.getAbsolutePath());
-		evaluateGroovyScript(input);
+		evaluateGroovyScript(new File(workspace.getRemote()), input);
 		return true;
 	}
 
@@ -300,7 +304,7 @@ public class ScriptSCM extends SCM {
 
 		PollingResult result = null;
 		try {
-			evaluateGroovyScript(input);
+			evaluateGroovyScript(new File(workspace.getRemote()), input);
 
 			ScriptSCMRevisionState remoteRevisionState = new ScriptSCMRevisionState();
 			remoteRevisionState.setRevisionState(Util.loadFile(new File(currentRevisionStatePath.getRemote())));
