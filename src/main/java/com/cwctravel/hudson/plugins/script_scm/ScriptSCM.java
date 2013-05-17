@@ -343,10 +343,10 @@ public class ScriptSCM extends SCM {
 			JSONObject jsonObject = (JSONObject)formData.get("scriptSource");
 			if(jsonObject != null) {
 				if(jsonObject.getInt("value") == 0) {
-					groovyScript = formData.getString("groovyScript");
+					groovyScript = jsonObject.getString("groovyScript");
 				}
 				else if(jsonObject.getInt("value") == 1) {
-					groovyScriptFile = formData.getString("groovyScriptFile");
+					groovyScriptFile = jsonObject.getString("groovyScriptFile");
 				}
 			}
 
