@@ -279,7 +279,22 @@ public class ScriptSCM extends SCM {
 		input.put("workspacePath", build.getWorkspace().getRemote());
 		input.put("changeLogPath", changelogFile.getParentFile().getAbsolutePath());
 		input.put("changeLogFile", changelogFile.getAbsolutePath());
-		evaluateGroovyScript(new File(workspace.getRemote()), input);
+
+		FilePath currentRevisionStatePath = workspace.createTempFile("current-revision", "");
+		File currentRevisionStateFile = new File(currentRevisionStatePath.getRemote());
+		input.put("currentRevisionStatePath", currentRevisionStatePath.getRemote());
+
+		try {
+			evaluateGroovyScript(new File(workspace.getRemote()), input);
+			if(currentRevisionStateFile.length() > 0) {
+				ScriptSCMRevisionState scmRevisionState = new ScriptSCMRevisionState();
+				scmRevisionState.setRevisionState(Util.loadFile(currentRevisionStateFile));
+				build.addAction(scmRevisionState);
+			}
+		}
+		finally {
+			currentRevisionStatePath.delete();
+		}
 		return true;
 	}
 
