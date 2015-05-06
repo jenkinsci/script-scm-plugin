@@ -24,5 +24,8 @@
       <f:entry field="bindings" title="${%Variable bindings}">
           <f:textarea name="bindings" value="${instance.bindings}" />
       </f:entry>
+      <f:entry field="groovyClasspath" title="${%Groovy Classpath}">
+           <f:textarea value="${instance.groovyClasspath}" />
+       </f:entry>
   </f:advanced>
 </j:jelly>

@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.399</version><!-- which version of Jenkins is this plugin built against? -->
+    <version>1.466</version><!-- which version of Jenkins is this plugin built against? -->
   </parent>
 
  
@@ -175,4 +175,11 @@
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/script-scm-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/script-scm-plugin</url>
   </scm>
+  <dependencies>
+  	<dependency>
+  		<groupId>org.jenkins-ci.plugins</groupId>
+  		<artifactId>ant</artifactId>
+  		<version>1.1</version>
+  	</dependency>
+  </dependencies>
 </project>

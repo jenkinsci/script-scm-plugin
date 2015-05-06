@@ -36,6 +36,8 @@ import java.util.Properties;
 
 import net.sf.json.JSONObject;
 
+import org.apache.commons.lang.StringUtils;
+import org.codehaus.groovy.control.CompilerConfiguration;
 import org.kohsuke.stapler.StaplerRequest;
 
 public class ScriptSCM extends SCM {
@@ -157,11 +159,13 @@ public class ScriptSCM extends SCM {
 	private String groovyScript;
 	private String groovyScriptFile;
 	private String bindings;
+	private String groovyClasspath;
 
-	public ScriptSCM(String groovyScript, String groovyScriptFile, String bindings) {
+	public ScriptSCM(String groovyScript, String groovyScriptFile, String bindings, String groovyClasspath) {
 		this.groovyScript = Util.fixEmpty(groovyScript);
 		this.groovyScriptFile = Util.fixEmpty(groovyScriptFile);
 		this.bindings = Util.fixEmpty(bindings);
+		this.groovyClasspath = groovyClasspath;
 	}
 
 	public void executeAnt(AbstractProject<?, ?> project, FilePath workspace, Launcher launcher, TaskListener listener, String targets,
@@ -207,7 +211,12 @@ public class ScriptSCM extends SCM {
 	}
 
 	private void evaluateGroovyScript(File workspace, Map<String, Object> input) throws IOException {
-		GroovyShell groovyShell = new GroovyShell();
+		CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
+		if(!StringUtils.isBlank(groovyClasspath)) {
+			compilerConfiguration.setClasspath(groovyClasspath);
+		}
+		GroovyShell groovyShell = new GroovyShell(compilerConfiguration);
+
 		if(input != null) {
 			setGroovySystemObjects(input);
 			for(Map.Entry<String, Object> entry: input.entrySet()) {
@@ -301,33 +310,37 @@ public class ScriptSCM extends SCM {
 	@Override
 	protected PollingResult compareRemoteRevisionWith(AbstractProject<?, ?> project, Launcher launcher, FilePath workspace, TaskListener listener,
 			SCMRevisionState baseline) throws IOException, InterruptedException {
-		Map<String, Object> input = new HashMap<String, Object>();
-		input.put("action", "compareRemoteRevisionWith");
-		input.put("project", project);
-		input.put("launcher", launcher);
-		input.put("listener", listener);
-		input.put("workspace", workspace);
-		input.put("scm", this);
-		input.put("baseline", baseline);
-		input.put("workspacePath", workspace.getRemote());
+		PollingResult result = PollingResult.NO_CHANGES;
 
-		FilePath changeResultPath = workspace.createTempFile("change-result", "");
-		input.put("changeResultPath", changeResultPath.getRemote());
+		AbstractBuild<?, ?> lastBuild = project.getLastBuild();
+		if(lastBuild == null || !lastBuild.isBuilding()) {
+			Map<String, Object> input = new HashMap<String, Object>();
+			input.put("action", "compareRemoteRevisionWith");
+			input.put("project", project);
+			input.put("launcher", launcher);
+			input.put("listener", listener);
+			input.put("workspace", workspace);
+			input.put("scm", this);
+			input.put("baseline", baseline);
+			input.put("workspacePath", workspace.getRemote());
 
-		FilePath currentRevisionStatePath = workspace.createTempFile("current-revision", "");
-		input.put("currentRevisionStatePath", currentRevisionStatePath.getRemote());
+			FilePath changeResultPath = workspace.createTempFile("change-result", "");
+			input.put("changeResultPath", changeResultPath.getRemote());
 
-		PollingResult result = null;
-		try {
-			evaluateGroovyScript(new File(workspace.getRemote()), input);
+			FilePath currentRevisionStatePath = workspace.createTempFile("current-revision", "");
+			input.put("currentRevisionStatePath", currentRevisionStatePath.getRemote());
 
-			ScriptSCMRevisionState remoteRevisionState = new ScriptSCMRevisionState();
-			remoteRevisionState.setRevisionState(Util.loadFile(new File(currentRevisionStatePath.getRemote())));
-			result = new PollingResult(baseline, remoteRevisionState, Change.valueOf(Util.loadFile(new File(changeResultPath.getRemote()))));
-		}
-		finally {
-			changeResultPath.delete();
-			currentRevisionStatePath.delete();
+			try {
+				evaluateGroovyScript(new File(workspace.getRemote()), input);
+
+				ScriptSCMRevisionState remoteRevisionState = new ScriptSCMRevisionState();
+				remoteRevisionState.setRevisionState(Util.loadFile(new File(currentRevisionStatePath.getRemote())));
+				result = new PollingResult(baseline, remoteRevisionState, Change.valueOf(Util.loadFile(new File(changeResultPath.getRemote()))));
+			}
+			finally {
+				changeResultPath.delete();
+				currentRevisionStatePath.delete();
+			}
 		}
 		return result;
 	}
@@ -354,6 +367,7 @@ public class ScriptSCM extends SCM {
 			String groovyScript = null;
 			String groovyScriptFile = null;
 			String bindings = null;
+			String groovyClasspath = null;
 
 			JSONObject jsonObject = (JSONObject)formData.get("scriptSource");
 			if(jsonObject != null) {
@@ -366,7 +380,9 @@ public class ScriptSCM extends SCM {
 			}
 
 			bindings = formData.getString("bindings");
-			return new ScriptSCM(groovyScript, groovyScriptFile, bindings);
+			groovyClasspath = formData.optString("groovyClasspath");
+
+			return new ScriptSCM(groovyScript, groovyScriptFile, bindings, groovyClasspath);
 		}
 
 		@Override
@@ -397,6 +413,14 @@ public class ScriptSCM extends SCM {
 
 	public void setBindings(String bindings) {
 		this.bindings = bindings;
+	}
+
+	public String getGroovyClasspath() {
+		return groovyClasspath;
+	}
+
+	public void setGroovyClasspath(String groovyClasspath) {
+		this.groovyClasspath = groovyClasspath;
 	}
 
 }
