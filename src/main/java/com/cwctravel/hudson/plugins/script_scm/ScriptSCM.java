@@ -1,5 +1,6 @@
 package com.cwctravel.hudson.plugins.script_scm;
 
+import groovy.lang.Binding;
 import groovy.lang.GroovyShell;
 import hudson.Extension;
 import hudson.FilePath;
@@ -12,6 +13,7 @@ import hudson.model.TaskListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Cause;
+import hudson.model.Hudson;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.PollingResult;
 import hudson.scm.PollingResult.Change;
@@ -215,7 +217,14 @@ public class ScriptSCM extends SCM {
 		if(!StringUtils.isBlank(groovyClasspath)) {
 			compilerConfiguration.setClasspath(groovyClasspath);
 		}
-		GroovyShell groovyShell = new GroovyShell(compilerConfiguration);
+
+		ClassLoader cl = Hudson.getInstance().getPluginManager().uberClassLoader;
+
+		if(cl == null) {
+			cl = Thread.currentThread().getContextClassLoader();
+		}
+
+		GroovyShell groovyShell = new GroovyShell(cl, new Binding(), compilerConfiguration);
 
 		if(input != null) {
 			setGroovySystemObjects(input);
