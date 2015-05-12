@@ -170,12 +170,12 @@ public class ScriptSCM extends SCM {
 		this.groovyClasspath = groovyClasspath;
 	}
 
-	public void executeAnt(AbstractProject<?, ?> project, FilePath workspace, Launcher launcher, TaskListener listener, String targets,
+	public boolean executeAnt(AbstractProject<?, ?> project, FilePath workspace, Launcher launcher, TaskListener listener, String targets,
 			String antName, String antOpts, String buildFile, String properties) throws ScriptTriggerException {
 		Ant ant = new Ant(targets, antName, antOpts, buildFile, properties);
 		try {
 			TempBuild<?, ?> tempBuild = new TempBuild(project, workspace);
-			ant.perform(tempBuild, launcher, listener instanceof BuildListener ? (BuildListener)listener : new TempBuildListener(listener));
+			return ant.perform(tempBuild, launcher, listener instanceof BuildListener ? (BuildListener)listener : new TempBuildListener(listener));
 
 		}
 		catch(IOException iE) {
@@ -192,11 +192,11 @@ public class ScriptSCM extends SCM {
 		}
 	}
 
-	public void executeAnt(AbstractBuild<?, ?> build, Launcher launcher, TaskListener listener, String targets, String antName, String antOpts,
+	public boolean executeAnt(AbstractBuild<?, ?> build, Launcher launcher, TaskListener listener, String targets, String antName, String antOpts,
 			String buildFile, String properties) throws ScriptTriggerException {
 		Ant ant = new Ant(targets, antName, antOpts, buildFile, properties);
 		try {
-			ant.perform(build, launcher, listener instanceof BuildListener ? (BuildListener)listener : new TempBuildListener(listener));
+			return ant.perform(build, launcher, listener instanceof BuildListener ? (BuildListener)listener : new TempBuildListener(listener));
 		}
 		catch(IOException iE) {
 			throw new ScriptTriggerException("Script Execution failed", iE);
