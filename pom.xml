@@ -156,7 +156,7 @@
   	</pluginManagement>
   </build>
   <name>Script SCM Plug-In</name>
-  <url>http://wiki.jenkins-ci.org/display/Jenkins/script-scm</url>
+  <url>https://wiki.jenkins-ci.org/display/JENKINS/Script+SCM+Plugin</url>
   <developers>
   <developer>
   	<id>vimil</id>
