@@ -8,12 +8,17 @@ import hudson.Launcher;
 import hudson.Util;
 import hudson.console.ConsoleNote;
 import hudson.model.BuildListener;
+import hudson.model.DependencyGraph;
+import hudson.model.ItemGroup;
 import hudson.model.Result;
 import hudson.model.TaskListener;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Cause;
+import hudson.model.Descriptor;
 import hudson.model.Hudson;
+import hudson.model.Queue.FlyweightTask;
+import hudson.model.Queue.NonBlockingTask;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.PollingResult;
 import hudson.scm.PollingResult.Change;
@@ -21,8 +26,10 @@ import hudson.scm.RepositoryBrowser;
 import hudson.scm.SCMDescriptor;
 import hudson.scm.SCMRevisionState;
 import hudson.scm.SCM;
+import hudson.tasks.Publisher;
 import hudson.tasks.Ant;
 import hudson.triggers.SCMTrigger.SCMTriggerCause;
+import hudson.util.DescribableList;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,11 +37,16 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import net.sf.json.JSONObject;
 
@@ -43,14 +55,157 @@ import org.codehaus.groovy.control.CompilerConfiguration;
 import org.kohsuke.stapler.StaplerRequest;
 
 public class ScriptSCM extends SCM {
-	private static class TempBuild<P extends AbstractProject<P, B>, B extends AbstractBuild<P, B>> extends AbstractBuild<P, B> {
-		protected TempBuild(P job, FilePath workspace) {
+	private static class TempBuild extends AbstractBuild<TempProject, TempBuild> {
+
+		public TempBuild(TempProject job, Calendar timestamp) {
+			super(job, timestamp);
+		}
+
+		public TempBuild(TempProject project, File buildDir) throws IOException {
+			super(project, buildDir);
+		}
+
+		public TempBuild(TempProject job) throws IOException {
+			super(job);
+		}
+
+		protected TempBuild(TempProject job, FilePath workspace) {
 			super(job, new GregorianCalendar());
 			setWorkspace(workspace);
 		}
 
 		@Override
-		public void run() {}
+		public void run() {
+			TempProject tempProject = this.getProject();
+			String targets = tempProject.getTargets();
+			String antName = tempProject.getAntName();
+			String antOpts = tempProject.getAntOpts();
+			String buildFile = tempProject.getBuildFile();
+			String properties = tempProject.getPropertiesStr();
+			Ant ant = new Ant(targets, antName, antOpts, buildFile, properties);
+			try {
+				TaskListener listener = tempProject.getListener();
+				ant.perform(this, tempProject.getLauncher(), listener instanceof BuildListener ? (BuildListener)listener : new TempBuildListener(listener));
+			}
+			catch(IOException iE) {
+				throw new ScriptTriggerException("Script Execution failed", iE);
+			}
+			catch(InterruptedException e) {
+				throw new ScriptTriggerException("Script Execution failed", e);
+			}
+			catch(IllegalArgumentException e) {
+				throw new ScriptTriggerException("Script Execution failed", e);
+			}
+			catch(SecurityException e) {
+				throw new ScriptTriggerException("Script Execution failed", e);
+			}
+		}
+	}
+
+	private static class TempProject extends AbstractProject<TempProject, TempBuild> implements FlyweightTask, NonBlockingTask {
+		private String targets;
+
+		private String antName;
+		private String antOpts;
+		private String buildFile;
+		private String properties;
+
+		private Launcher launcher;
+		private TaskListener listener;
+		FilePath projectWorkspace;
+
+		protected TempProject(ItemGroup parent, String name) {
+			super(parent, name);
+
+			this.disabled = false;
+		}
+
+		@Override
+		protected TempBuild newBuild() throws IOException {
+			return new TempBuild(this, this.getProjectWorkspace());
+		}
+
+		@Override
+		public DescribableList<Publisher, Descriptor<Publisher>> getPublishersList() {
+			return null;
+		}
+
+		@Override
+		protected Class<TempBuild> getBuildClass() {
+			return TempBuild.class;
+		}
+
+		@Override
+		public boolean isFingerprintConfigured() {
+			return false;
+		}
+
+		@Override
+		protected void buildDependencyGraph(DependencyGraph paramDependencyGraph) {}
+
+		public String getTargets() {
+			return targets;
+		}
+
+		public void setTargets(String targets) {
+			this.targets = targets;
+		}
+
+		public String getAntName() {
+			return antName;
+		}
+
+		public void setAntName(String antName) {
+			this.antName = antName;
+		}
+
+		public String getAntOpts() {
+			return antOpts;
+		}
+
+		public void setAntOpts(String antOpts) {
+			this.antOpts = antOpts;
+		}
+
+		public String getBuildFile() {
+			return buildFile;
+		}
+
+		public void setBuildFile(String buildFile) {
+			this.buildFile = buildFile;
+		}
+
+		public String getPropertiesStr() {
+			return properties;
+		}
+
+		public void setPropertiesStr(String properties) {
+			this.properties = properties;
+		}
+
+		public Launcher getLauncher() {
+			return launcher;
+		}
+
+		public void setLauncher(Launcher launcher) {
+			this.launcher = launcher;
+		}
+
+		public TaskListener getListener() {
+			return listener;
+		}
+
+		public void setListener(TaskListener listener) {
+			this.listener = listener;
+		}
+
+		public FilePath getProjectWorkspace() {
+			return projectWorkspace;
+		}
+
+		public void setProjectWorkspace(FilePath projectWorkspace) {
+			this.projectWorkspace = projectWorkspace;
+		}
 	}
 
 	private static class TempBuildListener implements BuildListener {
@@ -172,23 +327,47 @@ public class ScriptSCM extends SCM {
 
 	public boolean executeAnt(AbstractProject<?, ?> project, FilePath workspace, Launcher launcher, TaskListener listener, String targets,
 			String antName, String antOpts, String buildFile, String properties) throws ScriptTriggerException {
-		Ant ant = new Ant(targets, antName, antOpts, buildFile, properties);
-		try {
-			TempBuild<?, ?> tempBuild = new TempBuild(project, workspace);
-			return ant.perform(tempBuild, launcher, listener instanceof BuildListener ? (BuildListener)listener : new TempBuildListener(listener));
 
-		}
-		catch(IOException iE) {
-			throw new ScriptTriggerException("Script Execution failed", iE);
+		TempProject tempProject = new TempProject(project.getParent(), "ant-perform");
+		tempProject.setTargets(targets);
+		tempProject.setAntName(antName);
+		tempProject.setAntOpts(antOpts);
+		tempProject.setBuildFile(buildFile);
+		tempProject.setPropertiesStr(properties);
+		tempProject.setLauncher(launcher);
+		tempProject.setListener(listener);
+		tempProject.setProjectWorkspace(workspace);
+
+		// Future<TempBuild> futureTempBuild = tempProject.scheduleBuild2(0, null);
+		try {
+			long TIMEOUT_PERIOD = 150000; // try for 2.5 minutes before failing
+			// TempBuild tempBuild = tempProject.newBuild();
+			TempBuild tempBuild = tempProject.createExecutable();
+			boolean startBuild = tempProject.scheduleBuild(null);
+
+			Future<TempBuild> futureTempBuild = tempProject.scheduleBuild2(0, null);
+
+			TempBuild newTempBuild = futureTempBuild.get(TIMEOUT_PERIOD, TimeUnit.MILLISECONDS);
+			/*
+			for (Computer c : Jenkins.getInstance().getComputers()) {
+				if(c.getName() == "master") {
+					c.getExecutors()
+				}
+			}*/
+
+			return Result.SUCCESS.equals(newTempBuild.getResult());
 		}
 		catch(InterruptedException e) {
-			throw new ScriptTriggerException("Script Execution failed", e);
+			throw new ScriptTriggerException(e);
 		}
-		catch(IllegalArgumentException e) {
-			throw new ScriptTriggerException("Script Execution failed", e);
+		catch(ExecutionException e) {
+			throw new ScriptTriggerException(e);
 		}
-		catch(SecurityException e) {
-			throw new ScriptTriggerException("Script Execution failed", e);
+		catch(TimeoutException e) {
+			throw new ScriptTriggerException(e);
+		}
+		catch(IOException e) {
+			throw new ScriptTriggerException(e);
 		}
 	}
 
@@ -366,7 +545,7 @@ public class ScriptSCM extends SCM {
 	@Extension
 	public static final class DescriptorImpl extends SCMDescriptor<ScriptSCM> {
 		public DescriptorImpl() {
-			super(ScriptSCM.class, null);
+			super(ScriptSCM.class, ScriptSCMBrowser.class);
 			load();
 		}
 
