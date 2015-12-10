@@ -74,6 +74,16 @@ public class ScriptSCM extends SCM {
 			setWorkspace(workspace);
 		}
 
+		/*
+		 * return -1 to make duration be N/A otherwise
+		 * 		null pointer exception if @Override is removed
+		 * @see hudson.model.Run#getEstimatedDuration()
+		 */
+		@Override
+		public long getEstimatedDuration() {
+			return -1;
+		};
+
 		@Override
 		public void run() {
 			TempProject tempProject = this.getProject();
