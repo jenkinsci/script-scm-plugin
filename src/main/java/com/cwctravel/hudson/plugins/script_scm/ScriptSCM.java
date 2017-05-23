@@ -496,7 +496,7 @@ public class ScriptSCM extends SCM {
 		input.put("listener", listener);
 		input.put("workspace", workspace);
 		input.put("scm", this);
-		input.put("workspacePath", build.getWorkspace().getRemote());
+		input.put("workspacePath", workspace.getRemote());
 		input.put("changeLogPath", changelogFile.getParentFile().getAbsolutePath());
 		input.put("changeLogFile", changelogFile.getAbsolutePath());
 
