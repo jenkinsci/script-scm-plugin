@@ -34,7 +34,6 @@ import hudson.model.BuildListener;
 import hudson.model.Cause;
 import hudson.model.DependencyGraph;
 import hudson.model.Descriptor;
-import hudson.model.Hudson;
 import hudson.model.ItemGroup;
 import hudson.model.Result;
 import hudson.model.TaskListener;
@@ -51,6 +50,7 @@ import hudson.tasks.Ant;
 import hudson.tasks.Publisher;
 import hudson.triggers.SCMTrigger.SCMTriggerCause;
 import hudson.util.DescribableList;
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
 public class ScriptSCM extends SCM {
@@ -226,39 +226,48 @@ public class ScriptSCM extends SCM {
 			this.listener = listener;
 		}
 
+		@Override
 		public PrintStream getLogger() {
 			return listener.getLogger();
 		}
 
+		@Override
 		public void annotate(ConsoleNote ann) throws IOException {
 			listener.annotate(ann);
 
 		}
 
+		@Override
 		public void hyperlink(String url, String text) throws IOException {
 			listener.hyperlink(url, text);
 		}
 
+		@Override
 		public PrintWriter error(String msg) {
 			return listener.error(msg);
 		}
 
+		@Override
 		public PrintWriter error(String format, Object... args) {
 			return listener.error(format, args);
 		}
 
+		@Override
 		public PrintWriter fatalError(String msg) {
 			return listener.fatalError(msg);
 		}
 
+		@Override
 		public PrintWriter fatalError(String format, Object... args) {
 			return listener.fatalError(format, args);
 		}
 
+		@Override
 		public void started(List<Cause> causes) {
 
 		}
 
+		@Override
 		public void finished(Result result) {
 
 		}
@@ -347,22 +356,15 @@ public class ScriptSCM extends SCM {
 		tempProject.setListener(listener);
 		tempProject.setProjectWorkspace(workspace);
 
-		// Future<TempBuild> futureTempBuild = tempProject.scheduleBuild2(0, null);
 		try {
 			long TIMEOUT_PERIOD = 150000; // try for 2.5 minutes before failing
-			// TempBuild tempBuild = tempProject.newBuild();
-			TempBuild tempBuild = tempProject.createExecutable();
-			boolean startBuild = tempProject.scheduleBuild(null);
+
+			tempProject.createExecutable();
+			tempProject.scheduleBuild(null);
 
 			Future<TempBuild> futureTempBuild = tempProject.scheduleBuild2(0, null);
 
 			TempBuild newTempBuild = futureTempBuild.get(TIMEOUT_PERIOD, TimeUnit.MILLISECONDS);
-			/*
-			for (Computer c : Jenkins.getInstance().getComputers()) {
-				if(c.getName() == "master") {
-					c.getExecutors()
-				}
-			}*/
 
 			return Result.SUCCESS.equals(newTempBuild.getResult());
 		}
@@ -406,29 +408,32 @@ public class ScriptSCM extends SCM {
 			compilerConfiguration.setClasspath(groovyClasspath);
 		}
 
-		ClassLoader cl = Hudson.getInstance().getPluginManager().uberClassLoader;
+		Jenkins instance = Jenkins.getInstance();
+		if(instance != null) {
+			ClassLoader cl = instance.getPluginManager().uberClassLoader;
 
-		if(cl == null) {
-			cl = Thread.currentThread().getContextClassLoader();
-		}
-
-		GroovyShell groovyShell = new GroovyShell(cl, new Binding(), compilerConfiguration);
-
-		if(input != null) {
-			setGroovySystemObjects(input);
-			for(Map.Entry<String, Object> entry: input.entrySet()) {
-				groovyShell.setVariable(entry.getKey(), entry.getValue());
+			if(cl == null) {
+				cl = Thread.currentThread().getContextClassLoader();
 			}
-			if(groovyScriptFile != null) {
-				File scriptFile = new File(groovyScriptFile);
-				if(!scriptFile.exists()) {
-					scriptFile = new File(workspace, groovyScriptFile);
+
+			GroovyShell groovyShell = new GroovyShell(cl, new Binding(), compilerConfiguration);
+
+			if(input != null) {
+				setGroovySystemObjects(input);
+				for(Map.Entry<String, Object> entry: input.entrySet()) {
+					groovyShell.setVariable(entry.getKey(), entry.getValue());
 				}
-				String groovyScript = Util.loadFile(scriptFile);
-				groovyShell.evaluate(groovyScript);
-			}
-			else {
-				groovyShell.evaluate(groovyScript);
+				if(groovyScriptFile != null) {
+					File scriptFile = new File(groovyScriptFile);
+					if(!scriptFile.exists()) {
+						scriptFile = new File(workspace, groovyScriptFile);
+					}
+					String groovyScript = Util.loadFile(scriptFile);
+					groovyShell.evaluate(groovyScript);
+				}
+				else {
+					groovyShell.evaluate(groovyScript);
+				}
 			}
 		}
 	}
@@ -452,26 +457,33 @@ public class ScriptSCM extends SCM {
 	public SCMRevisionState calcRevisionsFromBuild(AbstractBuild<?, ?> build, Launcher launcher,
 			TaskListener listener) throws IOException, InterruptedException {
 		Map<String, Object> input = new HashMap<String, Object>();
-		input.put("action", "calcRevisionsFromBuild");
-		input.put("build", build);
-		input.put("launcher", launcher);
-		input.put("listener", listener);
-		input.put("scm", this);
-		FilePath filePath = build.getWorkspace().createTempFile("revision-state-", "");
-		input.put("revisionStatePath", filePath.getRemote());
-		input.put("workspacePath", build.getWorkspace().getRemote());
-		input.put("rootPath", build.getRootDir().getAbsolutePath());
+		FilePath workspace = build.getWorkspace();
+		if(workspace != null) {
+			input.put("action", "calcRevisionsFromBuild");
+			input.put("build", build);
+			input.put("launcher", launcher);
+			input.put("listener", listener);
+			input.put("scm", this);
 
-		ScriptSCMRevisionState result = null;
-		try {
-			evaluateGroovyScript(new File(build.getWorkspace().getRemote()), input);
-			result = new ScriptSCMRevisionState();
-			result.setRevisionState(Util.loadFile(new File(filePath.getRemote())));
+			FilePath filePath = workspace.createTempFile("revision-state-", "");
+			input.put("revisionStatePath", filePath.getRemote());
+			input.put("workspacePath", workspace.getRemote());
+			input.put("rootPath", build.getRootDir().getAbsolutePath());
+
+			ScriptSCMRevisionState result = null;
+			try {
+				evaluateGroovyScript(new File(workspace.getRemote()), input);
+				result = new ScriptSCMRevisionState();
+				result.setRevisionState(filePath.readToString());
+			}
+			finally {
+				filePath.delete();
+			}
+			return result;
 		}
-		finally {
-			filePath.delete();
+		else {
+			throw new IOException("workspace is null");
 		}
-		return result;
 	}
 
 	@Override
