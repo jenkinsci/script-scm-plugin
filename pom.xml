@@ -3,12 +3,12 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.466</version><!-- which version of Jenkins is this plugin built against? -->
+    <version>2.4</version><!-- which version of Jenkins is this plugin built against? -->
   </parent>
 
  
   <artifactId>script-scm</artifactId>
-  <version>1.19-SNAPSHOT</version>
+  <version>1.19</version>
   <packaging>hpi</packaging>
 
   <!-- get every artifact through maven.glassfish.org, which proxies all the artifacts that we need -->
