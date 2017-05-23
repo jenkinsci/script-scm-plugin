@@ -1,36 +1,5 @@
 package com.cwctravel.hudson.plugins.script_scm;
 
-import groovy.lang.Binding;
-import groovy.lang.GroovyShell;
-import hudson.Extension;
-import hudson.FilePath;
-import hudson.Launcher;
-import hudson.Util;
-import hudson.console.ConsoleNote;
-import hudson.model.BuildListener;
-import hudson.model.DependencyGraph;
-import hudson.model.ItemGroup;
-import hudson.model.Result;
-import hudson.model.TaskListener;
-import hudson.model.AbstractBuild;
-import hudson.model.AbstractProject;
-import hudson.model.Cause;
-import hudson.model.Descriptor;
-import hudson.model.Hudson;
-import hudson.model.Queue.FlyweightTask;
-import hudson.model.Queue.NonBlockingTask;
-import hudson.scm.ChangeLogParser;
-import hudson.scm.PollingResult;
-import hudson.scm.PollingResult.Change;
-import hudson.scm.RepositoryBrowser;
-import hudson.scm.SCMDescriptor;
-import hudson.scm.SCMRevisionState;
-import hudson.scm.SCM;
-import hudson.tasks.Publisher;
-import hudson.tasks.Ant;
-import hudson.triggers.SCMTrigger.SCMTriggerCause;
-import hudson.util.DescribableList;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -48,11 +17,41 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import net.sf.json.JSONObject;
-
 import org.apache.commons.lang.StringUtils;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.kohsuke.stapler.StaplerRequest;
+
+import groovy.lang.Binding;
+import groovy.lang.GroovyShell;
+import hudson.Extension;
+import hudson.FilePath;
+import hudson.Launcher;
+import hudson.Util;
+import hudson.console.ConsoleNote;
+import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
+import hudson.model.BuildListener;
+import hudson.model.Cause;
+import hudson.model.DependencyGraph;
+import hudson.model.Descriptor;
+import hudson.model.Hudson;
+import hudson.model.ItemGroup;
+import hudson.model.Result;
+import hudson.model.TaskListener;
+import hudson.model.Queue.FlyweightTask;
+import hudson.model.Queue.NonBlockingTask;
+import hudson.scm.ChangeLogParser;
+import hudson.scm.PollingResult;
+import hudson.scm.PollingResult.Change;
+import hudson.scm.RepositoryBrowser;
+import hudson.scm.SCM;
+import hudson.scm.SCMDescriptor;
+import hudson.scm.SCMRevisionState;
+import hudson.tasks.Ant;
+import hudson.tasks.Publisher;
+import hudson.triggers.SCMTrigger.SCMTriggerCause;
+import hudson.util.DescribableList;
+import net.sf.json.JSONObject;
 
 public class ScriptSCM extends SCM {
 	private static class TempBuild extends AbstractBuild<TempProject, TempBuild> {
@@ -450,7 +449,8 @@ public class ScriptSCM extends SCM {
 	}
 
 	@Override
-	public SCMRevisionState calcRevisionsFromBuild(AbstractBuild<?, ?> build, Launcher launcher, TaskListener listener) throws IOException, InterruptedException {
+	public SCMRevisionState calcRevisionsFromBuild(AbstractBuild<?, ?> build, Launcher launcher,
+			TaskListener listener) throws IOException, InterruptedException {
 		Map<String, Object> input = new HashMap<String, Object>();
 		input.put("action", "calcRevisionsFromBuild");
 		input.put("build", build);
@@ -475,7 +475,8 @@ public class ScriptSCM extends SCM {
 	}
 
 	@Override
-	public boolean checkout(AbstractBuild<?, ?> build, Launcher launcher, FilePath workspace, BuildListener listener, File changelogFile) throws IOException, InterruptedException {
+	public boolean checkout(AbstractBuild<?, ?> build, Launcher launcher, FilePath workspace, BuildListener listener,
+			File changelogFile) throws IOException, InterruptedException {
 		Map<String, Object> input = new HashMap<String, Object>();
 		input.put("action", "checkout");
 		input.put("build", build);
@@ -531,8 +532,8 @@ public class ScriptSCM extends SCM {
 				evaluateGroovyScript(new File(workspace.getRemote()), input);
 
 				ScriptSCMRevisionState remoteRevisionState = new ScriptSCMRevisionState();
-				remoteRevisionState.setRevisionState(Util.loadFile(new File(currentRevisionStatePath.getRemote())));
-				result = new PollingResult(baseline, remoteRevisionState, Change.valueOf(Util.loadFile(new File(changeResultPath.getRemote()))));
+				remoteRevisionState.setRevisionState(currentRevisionStatePath.readToString());
+				result = new PollingResult(baseline, remoteRevisionState, Change.valueOf(changeResultPath.readToString()));
 			}
 			finally {
 				changeResultPath.delete();
