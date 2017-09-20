@@ -197,6 +197,9 @@
     <url>https://github.com/jenkinsci/script-scm-plugin</url>
     <tag>script-scm-1.20</tag>
   </scm>
+  <properties>
+    <jenkins.version>2.11</jenkins.version>
+  </properties>
   <dependencies>
   	<dependency>
   		<groupId>org.jenkins-ci.plugins</groupId>
