@@ -3,6 +3,7 @@ package com.cwctravel.hudson.plugins.script_scm;
 import java.util.List;
 
 import hudson.Extension;
+import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Cause;
 import hudson.model.Item;
@@ -34,6 +35,15 @@ public class ScriptSCMDecisionHandler extends SCMDecisionHandler {
 									break;
 								}
 							}
+						}
+					}
+				}
+				if(result) {
+					AbstractBuild<?, ?> lastBuild = p.getBuilds().getLastBuild();
+					if(lastBuild != null) {
+						long timestamp = System.currentTimeMillis();
+						if(lastBuild.isBuilding() && lastBuild.getCause(SCMTriggerCause.class) != null && timestamp - lastBuild.getStartTimeInMillis() < 10000) {
+							result = false;
 						}
 					}
 				}
