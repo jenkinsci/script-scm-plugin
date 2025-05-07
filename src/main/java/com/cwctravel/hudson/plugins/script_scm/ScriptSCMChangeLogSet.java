@@ -11,7 +11,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.digester.Digester;
-import org.kohsuke.stapler.framework.io.IOException2;
 import org.xml.sax.SAXException;
 
 public class ScriptSCMChangeLogSet extends ChangeLogSet<ScriptSCMChangeLogEntry> {
@@ -60,10 +59,10 @@ public class ScriptSCMChangeLogSet extends ChangeLogSet<ScriptSCMChangeLogEntry>
 
 		}
 		catch(IOException e) {
-			throw new IOException2("Failed to parse " + changelogFile, e);
+			throw new IOException("Failed to parse " + changelogFile, e);
 		}
 		catch(SAXException e) {
-			throw new IOException2("Failed to parse " + changelogFile, e);
+			throw new IOException("Failed to parse " + changelogFile, e);
 		}
 
 		return new ScriptSCMChangeLogSet(build, changeLogEntries);
